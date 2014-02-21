@@ -1,0 +1,4 @@
+name: rappizit
+markdown: redcarpet
+pygments: true
+permalink: /:categories/:year/:title.html
