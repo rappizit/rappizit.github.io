@@ -3,6 +3,7 @@ layout: post
 title: Perlin Noise interactive demo
 date:   2014-02-23 17:38:00
 categories: demo
+tags: noise
 ---
 		<style>
 			td { vertical-align: top; }
@@ -13,8 +14,10 @@ categories: demo
             <div  style="position:relative; float:left">
                 <canvas id="canvas" width="400" height="400"></canvas>
                 </br>
-                <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin Noise</a> implemented by 
+                Use <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin Noise</a> implemented by 
                 <a href="https://www.npmjs.org/package/simplex-noise"> jonas</a>.
+                </br>
+                Tile algorithm is descripted in <a href="http://www.gamedev.net/blog/33/entry-2138456-seamless-noise/">seamless noise</a>.
             </div>
             <div style="height:440px">
                 <form id='noise-options'>
@@ -75,6 +78,8 @@ categories: demo
 			
             var SimplexArray = [new SimplexNoise(), new SimplexNoise(), new SimplexNoise(), new SimplexNoise()];
 			var simplex = SimplexArray[0];
+            var PI2 = Math.PI * 2;
+            var InvPI2 = 1 / PI2;
 
 			var NoiseSumMax = [
 			    0.0, 1.0,  2 - 1.0 / 2, 2 - 1.0 / 4,  2 - 1.0 / 8, 
@@ -114,10 +119,21 @@ categories: demo
 			}
 
             function tileableNoise2D(x, y, w, h) {
+                /*
                 return (simplex.noise2D(x,     y)     * (w - x) * (h - y) +
                         simplex.noise2D(x - w, y)     *      x  * (h - y) +
                         simplex.noise2D(x,     y - h) * (w - x) *      y  +
                         simplex.noise2D(x - w, y - h) *      x  *      y) / (w * h);
+                */
+                x /= w;
+                y /= h;
+                w *= InvPI2;
+                h *= InvPI2;
+                return simplex.noise4D(
+                    Math.cos(x * PI2) * w, 
+                    Math.cos(y * PI2) * h,
+                    Math.sin(x * PI2) * w,
+                    Math.sin(y * PI2) * h);
             }
 
             function tileableTurbulence2D(x, y, octaves, w, h) {
