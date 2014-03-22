@@ -240,6 +240,230 @@ tags: noise
 			}
 		</script>
 
+		<script>
+			//options
+			var BaseX = 4;
+			var BaseY = 4;
+			var Octaves = 4;
+			var Gain = 0.5;
+			var Lacunaity = 2;
+			var OffsetX = 0;
+			var OffsetY = 0;
+			var FBM = true;
+            var Tile = true;
+            var Gray = false;
+            var ColorComponent = [false, false, false, false];
+			
+            var SimplexArray = [new SimplexNoise(), new SimplexNoise(), new SimplexNoise(), new SimplexNoise()];
+			var simplex = SimplexArray[0];
+            var PI2 = Math.PI * 2;
+            var InvPI2 = 1 / PI2;
+
+            var curY = 0;
+            var lineDrawn = 0;
+            var drawScheduled = false;
+            var drawScheduleID;
+            var MaxLinesPerFrame = 8;
+            var image;
+
+			var NoiseSumMax = [
+			    0.0, 1.0,  2 - 1.0 / 2, 2 - 1.0 / 4,  2 - 1.0 / 8, 
+			    2 - 1.0 / 16, 2 - 1.0 / 32, 2 - 1.0 / 64, 2 - 1.0 / 128
+			];
+
+			function turbulence2D(x, y, octaves) {
+			    var a = 1.0, f = 1.0, s = 0;
+			    for (var i = 0; i < octaves; ++i) {
+					s += a * Math.abs(simplex.noise2D(f * x, f * y));
+					a *= 0.5;
+					f *= 2.0;
+			    }
+			    return s / NoiseSumMax[octaves];
+			}
+
+			function fractal2D(x, y, octaves) {
+				//return fbm2D(x, y, octaves, 0.5, 2);
+			    var a = 1.0, f = 1.0, s = 0;
+			    for (var i = 0; i < octaves; ++i) {
+					s += a * simplex.noise2D(f * x, f * y);
+					a *= 0.5;
+					f *= 2.0;
+			    }
+			    return s / NoiseSumMax[octaves];
+			}
+
+			function fbm2D(x, y, octaves, gain, lacunaity) {
+			    var a = 1.0, f = 1.0, s = 0, maxS = 0;
+			    for (var i = 0; i < octaves; ++i) {
+					s += a * simplex.noise2D(f * x, f * y);
+					maxS += a;
+					a *= gain;
+					f *= lacunaity;
+			    }
+			    return s / maxS;
+			}
+
+            function tileableNoise2D(x, y, w, h) {
+                /*
+                return (simplex.noise2D(x,     y)     * (w - x) * (h - y) +
+                        simplex.noise2D(x - w, y)     *      x  * (h - y) +
+                        simplex.noise2D(x,     y - h) * (w - x) *      y  +
+                        simplex.noise2D(x - w, y - h) *      x  *      y) / (w * h);
+                */
+                x /= w;
+                y /= h;
+                w *= InvPI2;
+                h *= InvPI2;
+                return simplex.noise4D(
+                    Math.cos(x * PI2) * w, 
+                    Math.cos(y * PI2) * h,
+                    Math.sin(x * PI2) * w,
+                    Math.sin(y * PI2) * h);
+            }
+
+            function tileableTurbulence2D(x, y, octaves, w, h) {
+                var a = 1.0, f = 1.0, s = 0;
+                for (var i = 0; i < octaves; ++i) {
+                    s += a * Math.abs(tileableNoise2D(f * x, f * y, f * w, f * h));
+                    a *= 0.5;
+                    f *= 2.0;
+                }
+                return s / NoiseSumMax[octaves];
+            }
+
+            function tileableFractal2D(x, y, octaves, w, h) {
+                var a = 1.0, f = 1.0, s = 0;
+                for (var i = 0; i < octaves; ++i) {
+                    s += a * tileableNoise2D(f * x, f * y, f * w, f * h);
+                    a *= 0.5;
+                    f *= 2.0;
+                }
+                return s / NoiseSumMax[octaves];
+            }
+
+            function tileableFbm2D(x, y, octaves, gain, lacunaity, w, h) {
+                var a = 1.0, f = 1.0, s = 0, maxS = 0;
+                for (var i = 0; i < octaves; ++i) {
+                    s += a * tileableNoise2D(f * x, f * y, f * w, f * h);
+                    maxS += a;
+                    a *= gain;
+                    f *= lacunaity;
+                }
+                return s / maxS;
+            }
+
+            function requestRedraw() {
+                lineDrawn = 0;
+                if (!drawScheduled) {
+                    drawScheduled = true;
+                    drawScheduleID = setTimeout(draw, 8);
+                }
+            }
+
+			function draw() {
+                drawScheduled = false;
+				canvas = document.getElementById("canvas");
+				ctx = canvas.getContext("2d");
+				var W = canvas.width;
+				var H = canvas.height;
+                if (lineDrawn >= H) {
+                    clearTimeout(drawScheduleID);
+                    return;
+                }
+                if (image == undefined) {
+                    image = ctx.createImageData(W, H);
+                }
+				var data = image.data;
+                var lineDrawnBak = lineDrawn;
+                var maxLinesPerFrame = MaxLinesPerFrame;
+	
+				var hasColor = ColorComponent[0] || ColorComponent[1] || ColorComponent[2] || ColorComponent[3];
+				var tmpGray = hasColor ? Gray : true;
+                if (tmpGray && !Tile) {
+                    maxLinesPerFrame = H;
+                }
+				for (var comp = 0; comp < 4; ++comp) {
+                    if (ColorComponent[comp] || !hasColor) {
+                        simplex = SimplexArray[comp];
+                        lineDrawn = lineDrawnBak;
+                        for (var y = curY, idx = W * curY * 4; lineDrawn < H && lineDrawn - lineDrawnBak < maxLinesPerFrame; ++y, ++lineDrawn) {
+                            if (y >= H) {
+                                y -= H;
+                                idx = W * y * 4;
+                            }
+							for (var x = 0; x < W; ++x) {
+								var n;
+								if (!Tile) {
+									var x2 = x * BaseX / W + OffsetX;
+									var y2 = y * BaseY / H + OffsetY;
+									if (FBM) {
+										n = fbm2D(x2, y2, Octaves, Gain, Lacunaity) * 128 + 127;
+									} else {
+										n = turbulence2D(x2, y2, Octaves) * 255;
+									}
+								} else {
+									var x2 = (x % (W / 2) * BaseX / (W / 2) + OffsetX % BaseX + BaseX) % BaseX;
+									var y2 = (y % (H / 2) * BaseY / (H / 2) + OffsetY % BaseY + BaseY) % BaseY;
+									if (FBM) {
+										n = tileableFbm2D(x2, y2, Octaves, Gain, Lacunaity, BaseX, BaseY) * 128 + 127;
+									} else {
+										n = tileableTurbulence2D(x2, y2, Octaves, BaseX, BaseY) * 255;
+									}
+								}
+								if (tmpGray){
+									data[idx++] = n;
+									data[idx++] = n;
+									data[idx++] = n;
+									data[idx++] = 255;
+								} else {
+                                    data[idx + comp] = n;
+                                    idx += 4;
+								}
+							}
+						}
+                    } else {
+                        lineDrawn = lineDrawnBak;
+                        for (var y = curY, idx = W * curY * 4; lineDrawn < H && lineDrawn - lineDrawnBak < maxLinesPerFrame; ++y, ++lineDrawn) {
+                            if (y >= H) {
+                                y -= H;
+                                idx = W * y * 4;
+                            }
+							for (var x = 0; x < W; ++x) {
+								data[idx + comp] = comp == 3 ? 255 : 0;
+								idx += 4;
+							}
+						}
+                    }
+                    if (ColorComponent[comp] && tmpGray) {
+						break;
+                    }
+				}
+				
+				ctx.putImageData(image, 0, 0);
+
+                if (Tile) {
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+                    ctx.beginPath();
+                    ctx.moveTo(0, H / 2);
+                    ctx.lineTo(W, H / 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(W / 2, 0);
+                    ctx.lineTo(W / 2, H);
+                    ctx.stroke();
+                }
+
+                
+                curY += lineDrawn - lineDrawnBak;
+                if (curY >= H) {
+                    curY -= H;
+                }
+                //alert("curY=" + curY);
+                drawScheduled = true;
+                drawScheduleID = setTimeout(draw, 8);
+			}
+		</script>
+
         <script>
             function resetOptions() {
                 BaseX = 4;
@@ -288,7 +512,7 @@ tags: noise
 
             $("#sets").change(function() {
                 setFBM($(this).val() == "FBM");
-                draw();
+                requestRedraw();
             });
 
             $("#base-x, #base-y, #octaves, #gain, #lacunaity, #offset-x, #offset-y").change(function() {
@@ -318,7 +542,7 @@ tags: noise
                 } else {
                     return;
                 }
-                draw();
+                requestRedraw();
             });
 
             $("form").on("click", "input:submit", function(evt) {
@@ -332,7 +556,7 @@ tags: noise
                 }
                 
                 evt.preventDefault();
-                draw();
+                requestRedraw();
             });
 
             $("#tile, #red, #green, #blue, #alpha, #gray").click(function() {
@@ -357,7 +581,7 @@ tags: noise
                         Gray = checked;
                         break;
                 }
-                draw();
+                requestRedraw();
             });
             
             $(document).ready(function() {
@@ -366,6 +590,6 @@ tags: noise
                 setFBM(FBM);
                 $("#tile:checkbox").attr('checked', false);
                 Tile = false;
-                draw();
+                requestRedraw();
             });
         </script>	
