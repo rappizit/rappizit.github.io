@@ -34,12 +34,12 @@
             <div  style="position:relative; float:left">
                 <canvas id="canvas" width="400" height="400"></canvas>
                 </br>
-                Use <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin Noise</a> implemented by 
+                Code based <a href="http://en.wikipedia.org/wiki/Perlin_noise">Perlin Noise</a> implemented by 
                 <a href="https://www.npmjs.org/package/simplex-noise"> jonas</a>.
                 </br>
-                Tile algorithm is described in <a href="http://www.gamedev.net/blog/33/entry-2138456-seamless-noise/">seamless noise</a>.
+                The tile algorithm description can be found in <a href="http://www.gamedev.net/blog/33/entry-2138456-seamless-noise/">here</a>.
             </div>
-            <div style="height:440px">
+            <div style="height:450px">
                 <form id='noise-options'>
                     <table border="0">
                         <tr>
@@ -60,8 +60,8 @@
                                 <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gray:&nbsp;&nbsp;</span><input type="checkbox" id="gray"><br/>
                                 <span>&nbsp;&nbsp;OffsetX:&nbsp;&nbsp;</span><input type="range" step="0.05" id="offset-x" name="offset-x" value="0" min="-2.0" max="2.0"/><span id="offset-x-label">0</span><br/> 
                                 <span>&nbsp;&nbsp;OffsetY:&nbsp;&nbsp;</span><input type="range" step="0.05" id="offset-y" name="offset-y" value="0" min="-2.0" max="2.0"/><span id="offset-y-label">0</span><br/> 
-                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseX:&nbsp;&nbsp;</span><input type="range" step="0.05" id="base-x" name="base-x" value="4.0" min="1.0" max="256.0"/><span id="base-x-label">4.0</span><br/> 
-                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseY:&nbsp;&nbsp;</span><input type="range" step="0.05" id="base-y" name="base-x" value="4.0" min="1.0" max="256.0"/><span id="base-y-label">4.0</span><br/> 
+                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseX:&nbsp;&nbsp;</span><input type="range" step="0.05" id="base-x" name="base-x" value="4.0" min="1.0" max="128.0"/><span id="base-x-label">4.0</span><br/> 
+                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseY:&nbsp;&nbsp;</span><input type="range" step="0.05" id="base-y" name="base-x" value="4.0" min="1.0" max="128.0"/><span id="base-y-label">4.0</span><br/> 
                                 <span>&nbsp;&nbsp;Octaves:&nbsp;&nbsp;</span><input type="range" step="1" id="octaves" name="octaves" value="4" min="1" max="8"/><span id="octaves-label">4</span><br/> 
                                 <div id="fbm-options">
                                     <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbspGain:&nbsp;&nbsp;</span><input type="range" step="0.05" id="gain" name="gain" value="0.5" min="0.0" max="1.0"/><span id="gain-label">0.5</span><br/> 
@@ -145,15 +145,15 @@
                         simplex.noise2D(x,     y - h) * (w - x) *      y  +
                         simplex.noise2D(x - w, y - h) *      x  *      y) / (w * h);
                 */
-                x /= w;
-                y /= h;
                 w *= InvPI2;
                 h *= InvPI2;
+                x /= w;
+                y /= h;
                 return simplex.noise4D(
-                    Math.cos(x * PI2) * w, 
-                    Math.cos(y * PI2) * h,
-                    Math.sin(x * PI2) * w,
-                    Math.sin(y * PI2) * h);
+                    Math.cos(x) * w, 
+                    Math.cos(y) * h,
+                    Math.sin(x) * w,
+                    Math.sin(y) * h);
             }
 
             function tileableTurbulence2D(x, y, octaves, w, h) {
@@ -186,7 +186,7 @@
                 }
                 return s / maxS;
             }
-
+            
 			function draw() {
 				canvas = document.getElementById("canvas");
 				ctx = canvas.getContext("2d");
@@ -247,6 +247,7 @@
 				ctx.putImageData(image, 0, 0);
 
                 if (Tile) {
+                	ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
                     ctx.beginPath();
                     ctx.moveTo(0, H / 2);
                     ctx.lineTo(W, H / 2);
