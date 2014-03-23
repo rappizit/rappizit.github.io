@@ -60,8 +60,8 @@
                                 <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gray:&nbsp;&nbsp;</span><input type="checkbox" id="gray"><br/>
                                 <span>&nbsp;&nbsp;OffsetX:&nbsp;&nbsp;</span><input type="range" step="0.05" id="offset-x" name="offset-x" value="0" min="-2.0" max="2.0"/><span id="offset-x-label">0</span><br/> 
                                 <span>&nbsp;&nbsp;OffsetY:&nbsp;&nbsp;</span><input type="range" step="0.05" id="offset-y" name="offset-y" value="0" min="-2.0" max="2.0"/><span id="offset-y-label">0</span><br/> 
-                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseX:&nbsp;&nbsp;</span><input type="range" step="0.05" id="base-x" name="base-x" value="4.0" min="1.0" max="128.0"/><span id="base-x-label">4.0</span><br/> 
-                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseY:&nbsp;&nbsp;</span><input type="range" step="0.05" id="base-y" name="base-x" value="4.0" min="1.0" max="128.0"/><span id="base-y-label">4.0</span><br/> 
+                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseX:&nbsp;&nbsp;</span><input type="range" step="0.1" id="base-x" name="base-x" value="64.0" min="1.0" max="256.0"/><span id="base-x-label">64.0</span><br/> 
+                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseY:&nbsp;&nbsp;</span><input type="range" step="0.1" id="base-y" name="base-x" value="64.0" min="1.0" max="256.0"/><span id="base-y-label">64.0</span><br/> 
                                 <span>&nbsp;&nbsp;Octaves:&nbsp;&nbsp;</span><input type="range" step="1" id="octaves" name="octaves" value="4" min="1" max="8"/><span id="octaves-label">4</span><br/> 
                                 <div id="fbm-options">
                                     <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbspGain:&nbsp;&nbsp;</span><input type="range" step="0.05" id="gain" name="gain" value="0.5" min="0.0" max="1.0"/><span id="gain-label">0.5</span><br/> 
@@ -82,184 +82,6 @@
 		<script src="/script/jquery.min-1.10.2.js"></script>
 		<script src="/script/simplex-noise.min.js"></script>
 		
-		<script>
-			//options
-			var BaseX = 4;
-			var BaseY = 4;
-			var Octaves = 4;
-			var Gain = 0.5;
-			var Lacunaity = 2;
-			var OffsetX = 0;
-			var OffsetY = 0;
-			var FBM = true;
-            var Tile = true;
-            var Gray = false;
-            var ColorComponent = [false, false, false, false];
-			
-            var SimplexArray = [new SimplexNoise(), new SimplexNoise(), new SimplexNoise(), new SimplexNoise()];
-			var simplex = SimplexArray[0];
-            var PI2 = Math.PI * 2;
-            var InvPI2 = 1 / PI2;
-
-			var NoiseSumMax = [
-			    0.0, 1.0,  2 - 1.0 / 2, 2 - 1.0 / 4,  2 - 1.0 / 8, 
-			    2 - 1.0 / 16, 2 - 1.0 / 32, 2 - 1.0 / 64, 2 - 1.0 / 128
-			];
-
-			function turbulence2D(x, y, octaves) {
-			    var a = 1.0, f = 1.0, s = 0;
-			    for (var i = 0; i < octaves; ++i) {
-					s += a * Math.abs(simplex.noise2D(f * x, f * y));
-					a *= 0.5;
-					f *= 2.0;
-			    }
-			    return s / NoiseSumMax[octaves];
-			}
-
-			function fractal2D(x, y, octaves) {
-				//return fbm2D(x, y, octaves, 0.5, 2);
-			    var a = 1.0, f = 1.0, s = 0;
-			    for (var i = 0; i < octaves; ++i) {
-					s += a * simplex.noise2D(f * x, f * y);
-					a *= 0.5;
-					f *= 2.0;
-			    }
-			    return s / NoiseSumMax[octaves];
-			}
-
-			function fbm2D(x, y, octaves, gain, lacunaity) {
-			    var a = 1.0, f = 1.0, s = 0, maxS = 0;
-			    for (var i = 0; i < octaves; ++i) {
-					s += a * simplex.noise2D(f * x, f * y);
-					maxS += a;
-					a *= gain;
-					f *= lacunaity;
-			    }
-			    return s / maxS;
-			}
-
-            function tileableNoise2D(x, y, w, h) {
-                /*
-                return (simplex.noise2D(x,     y)     * (w - x) * (h - y) +
-                        simplex.noise2D(x - w, y)     *      x  * (h - y) +
-                        simplex.noise2D(x,     y - h) * (w - x) *      y  +
-                        simplex.noise2D(x - w, y - h) *      x  *      y) / (w * h);
-                */
-                w *= InvPI2;
-                h *= InvPI2;
-                x /= w;
-                y /= h;
-                return simplex.noise4D(
-                    Math.cos(x) * w, 
-                    Math.cos(y) * h,
-                    Math.sin(x) * w,
-                    Math.sin(y) * h);
-            }
-
-            function tileableTurbulence2D(x, y, octaves, w, h) {
-                var a = 1.0, f = 1.0, s = 0;
-                for (var i = 0; i < octaves; ++i) {
-                    s += a * Math.abs(tileableNoise2D(f * x, f * y, f * w, f * h));
-                    a *= 0.5;
-                    f *= 2.0;
-                }
-                return s / NoiseSumMax[octaves];
-            }
-
-            function tileableFractal2D(x, y, octaves, w, h) {
-                var a = 1.0, f = 1.0, s = 0;
-                for (var i = 0; i < octaves; ++i) {
-                    s += a * tileableNoise2D(f * x, f * y, f * w, f * h);
-                    a *= 0.5;
-                    f *= 2.0;
-                }
-                return s / NoiseSumMax[octaves];
-            }
-
-            function tileableFbm2D(x, y, octaves, gain, lacunaity, w, h) {
-                var a = 1.0, f = 1.0, s = 0, maxS = 0;
-                for (var i = 0; i < octaves; ++i) {
-                    s += a * tileableNoise2D(f * x, f * y, f * w, f * h);
-                    maxS += a;
-                    a *= gain;
-                    f *= lacunaity;
-                }
-                return s / maxS;
-            }
-            
-			function draw() {
-				canvas = document.getElementById("canvas");
-				ctx = canvas.getContext("2d");
-				var W = canvas.width;
-				var H = canvas.height;
-				var image = ctx.getImageData(0, 0, W, H);
-				var data = image.data;
-				
-				var hasColor = ColorComponent[0] || ColorComponent[1] || ColorComponent[2] || ColorComponent[3];
-				var tmpGray = hasColor ? Gray : true;
-				for (var comp = 0; comp < 4; ++comp) {
-                    if (ColorComponent[comp] || !hasColor) {
-                        simplex = SimplexArray[comp];
-                        for (var y = 0, idx = 0; y < H; ++y) {
-							for (var x = 0; x < W; ++x) {
-								var n;
-								if (!Tile) {
-									var x2 = x * BaseX / W + OffsetX;
-									var y2 = y * BaseY / H + OffsetY;
-									if (FBM) {
-										n = fbm2D(x2, y2, Octaves, Gain, Lacunaity) * 128 + 127;
-									} else {
-										n = turbulence2D(x2, y2, Octaves) * 255;
-									}
-								} else {
-									var x2 = (x % (W / 2) * BaseX / (W / 2) + OffsetX % BaseX + BaseX) % BaseX;
-									var y2 = (y % (H / 2) * BaseY / (H / 2) + OffsetY % BaseY + BaseY) % BaseY;
-									if (FBM) {
-										n = tileableFbm2D(x2, y2, Octaves, Gain, Lacunaity, BaseX, BaseY) * 128 + 127;
-									} else {
-										n = tileableTurbulence2D(x2, y2, Octaves, BaseX, BaseY) * 255;
-									}
-								}
-								if (tmpGray){
-									data[idx++] = n;
-									data[idx++] = n;
-									data[idx++] = n;
-									data[idx++] = 255;
-								} else {
-                                    data[idx + comp] = n;
-                                    idx += 4;
-								}
-							}
-						}
-                    } else {
-						for (var y = 0, idx = 0; y < H; ++y) {
-							for (var x = 0; x < W; ++x) {
-								data[idx + comp] = comp == 3 ? 255 : 0;
-								idx += 4;
-							}
-						}
-                    }
-                    if (ColorComponent[comp] && tmpGray) {
-						break;
-                    }
-				}
-				
-				ctx.putImageData(image, 0, 0);
-
-                if (Tile) {
-                	ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-                    ctx.beginPath();
-                    ctx.moveTo(0, H / 2);
-                    ctx.lineTo(W, H / 2);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(W / 2, 0);
-                    ctx.lineTo(W / 2, H);
-                    ctx.stroke();
-                }
-			}
-		</script>
-
 		<script>
 			//options
 			var BaseX = 4;
@@ -495,16 +317,16 @@
                 OffsetY = 0;
                 ColorComponent[0] = ColorComponent[1] = ColorComponent[2] = ColorComponent[3] = false;
         
-                $("#base-x").val(4.0);
-                $("#base-y").val(4.0);
+                $("#base-x").val(64.0);
+                $("#base-y").val(64.0);
                 $("#octaves").val(4);
                 $("#gain").val(0.5);
                 $("#lacunaity").val(2.0);
                 $("#offset-x").val(0);
                 $("#offset-y").val(0);
                 
-                $("#base-x-label").html(4.0);
-                $("#base-y-label").html(4.0);
+                $("#base-x-label").html(64.0);
+                $("#base-y-label").html(64.0);
                 $("#octaves-label").html(4);
                 $("#gain-label").html(0.5);
                 $("#lacunaity-label").html(2.0);
@@ -539,10 +361,10 @@
                 var range = $(this);
                 var value = parseFloat(range.val());
                 if (range.attr("id") == "base-x") {
-                    BaseX = value;
+                    BaseX = 256.0 / value;
                     $("#base-x-label").html(value);
                 } else if (range.attr("id") == "base-y") {
-                    BaseY = value;
+                    BaseY = 256.0 / value;
                     $("#base-y-label").html(value);
                 } else if (range.attr("id") == "octaves") {
                     Octaves = value;
@@ -612,7 +434,7 @@
                 Tile = false;
                 requestRedraw();
             });
-        </script>	
+        </script>
 
 </div>
 
