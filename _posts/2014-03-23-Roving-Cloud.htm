@@ -1,0 +1,55 @@
+---
+layout: post
+title: Roving Cloud
+date:   2014-03-23 19:38:00
+categories: graphics-basic
+tags: noise cloud
+---
+        <div>
+            <div  style="position:relative; float:center">
+                <canvas id="canvas" width="600" height="200"></canvas>
+                </br>
+                Source: <a href="http://www.flashandmath.com/intermediate/clouds/">Realistic White Clouds on Blue Sky in AS3 Flash</a>.
+            </div>
+        </div>
+		
+        <script src="/script/simplex-noise.min.js"></script>
+        <script src="/script/ImageData.js"></script>
+        <script src="/script/ColorMatrixFilter.js"></script>
+        <script>
+
+            var canvas = document.getElementById("canvas");
+            var ctx = canvas.getContext("2d");
+            var W = canvas.width;
+            var H = canvas.height;
+            var perlinBitmap = ctx.createImageData(W, H);
+            var numOctaves = 5;
+            var offsets = [];
+            for (var i = 0; i < numOctaves; ++i) {
+                offsets[i] = {x:0, y:0};
+            }
+            var cmf = new ColorMatrixFilter([
+                    0, 0, 0, 0, 255,
+                    0, 0, 0, 0, 255,
+                    0, 0, 0, 0, 255,
+                    1, 0, 0, 0, 0,
+                ]);
+
+            ctx.fillStyle = "#2255aa";  //sky(background) color
+            ctx.globalCompositeOperation = "destination-over";
+
+            setInterval(function() { 
+                for (var i = 0; i < numOctaves; ++i) {
+                    offsets[i].x += 1;
+                    offsets[i].y += 0.2;
+                }
+                perlinBitmap.perlinNoise(150, 150 * W / H, numOctaves, 0, false, true, 1, false, offsets, 0.25, 3);
+                perlinBitmap.applyFilter(perlinBitmap, null, null, cmf);
+                ctx.putImageData(perlinBitmap, 0, 0);
+                ctx.fillRect(0, 0, W, H);   //draw sky
+
+            } );
+
+        </script>
+		
+
