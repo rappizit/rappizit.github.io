@@ -12,10 +12,11 @@ var ColorMatrixFilter = function(matrix) {
         //alphaResult = (a[15] * srcR) + (a[16] * srcG) + (a[17] * srcB) + (a[18] * srcA) + a[19]
 
         var dstRect = dstBitmap.calDstRect(srcRect, dstPoint);
-        var x0 = dstRect.x;
-        var y0 = dstRect.y;
-        var x1 = x0 + dstRect.w;
-        var y1 = y0 + dstRect.h;
+        var x0 = dstRect.l;
+        var y0 = dstRect.t;
+        var x1 = dstRect.r;
+        var y1 = dstRect.b;
+        if (x0 >= x1 || y0 >= y1) return;
         var dstStride = dstBitmap.width * 4;
         var dst = dstBitmap.data;
 
@@ -24,7 +25,7 @@ var ColorMatrixFilter = function(matrix) {
 
         for (var y = y0; y < y1; ++y) {
             var dstIndex = y * dstStride + x0 * 4;
-            var srcIndex = (y - y0 + srcRect.y) * srcBitmap.width * 4 + srcRect.x * 4;
+            var srcIndex = (y - dstPoint.y + srcRect.t) * srcBitmap.width * 4 + (srcRect.l + x0 - dstPoint.x) * 4;
             for (var x = x0; x < x1; ++x) {
                 var r = src[srcIndex];
                 var g = src[srcIndex + 1];
