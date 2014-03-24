@@ -58,14 +58,14 @@
                                 <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Blue:&nbsp;&nbsp;</span><input type="checkbox" id="blue" ><br/>
                                 <span>&nbsp;&nbsp;&nbsp;&nbsp;Alpha:&nbsp;&nbsp;</span><input type="checkbox" id="alpha" ><br/>
                                 <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Gray:&nbsp;&nbsp;</span><input type="checkbox" id="gray"><br/>
-                                <span>&nbsp;&nbsp;OffsetX:&nbsp;&nbsp;</span><input type="range" step="0.05" id="offset-x" name="offset-x" value="0" min="-2.0" max="2.0"/><span id="offset-x-label">0</span><br/> 
-                                <span>&nbsp;&nbsp;OffsetY:&nbsp;&nbsp;</span><input type="range" step="0.05" id="offset-y" name="offset-y" value="0" min="-2.0" max="2.0"/><span id="offset-y-label">0</span><br/> 
-                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseX:&nbsp;&nbsp;</span><input type="range" step="0.1" id="base-x" name="base-x" value="64.0" min="1.0" max="256.0"/><span id="base-x-label">64.0</span><br/> 
-                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseY:&nbsp;&nbsp;</span><input type="range" step="0.1" id="base-y" name="base-x" value="64.0" min="1.0" max="256.0"/><span id="base-y-label">64.0</span><br/> 
+                                <span>&nbsp;&nbsp;OffsetX:&nbsp;&nbsp;</span><input type="range" step="1" id="offset-x" name="offset-x" value="0" min="-200" max="200"/><span id="offset-x-label">0</span><br/> 
+                                <span>&nbsp;&nbsp;OffsetY:&nbsp;&nbsp;</span><input type="range" step="1" id="offset-y" name="offset-y" value="0" min="-200" max="200"/><span id="offset-y-label">0</span><br/> 
+                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseX:&nbsp;&nbsp;</span><input type="range" step="1" id="base-x" name="base-x" value="64" min="1" max="256"/><span id="base-x-label">64</span><br/> 
+                                <span>&nbsp;&nbsp;&nbsp;&nbsp;BaseY:&nbsp;&nbsp;</span><input type="range" step="1" id="base-y" name="base-x" value="64" min="1" max="256"/><span id="base-y-label">64</span><br/> 
                                 <span>&nbsp;&nbsp;Octaves:&nbsp;&nbsp;</span><input type="range" step="1" id="octaves" name="octaves" value="4" min="1" max="8"/><span id="octaves-label">4</span><br/> 
                                 <div id="fbm-options">
-                                    <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbspGain:&nbsp;&nbsp;</span><input type="range" step="0.05" id="gain" name="gain" value="0.5" min="0.0" max="1.0"/><span id="gain-label">0.5</span><br/> 
-                                    <span>Lacunaity:&nbsp;&nbsp;</span><input type="range" step="0.05" id="lacunaity" name="lacunaity" value="2.0" min="0.0" max="8.0"/><span id="lacunaity-label">2.0</span><br/> 
+                                    <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbspGain:&nbsp;&nbsp;</span><input type="range" step="0.1" id="gain" name="gain" value="0.5" min="0.0" max="1.0"/><span id="gain-label">0.5</span><br/> 
+                                    <span>Lacunaity:&nbsp;&nbsp;</span><input type="range" step="0.1" id="lacunaity" name="lacunaity" value="2.0" min="0.0" max="8.0"/><span id="lacunaity-label">2.0</span><br/> 
                                 </div>
                             </td>
                         </tr>
@@ -84,8 +84,8 @@
 		
 		<script>
 			//options
-			var BaseX = 4;
-			var BaseY = 4;
+			var BaseX = 64;
+			var BaseY = 64;
 			var Octaves = 4;
 			var Gain = 0.5;
 			var Lacunaity = 2;
@@ -224,6 +224,8 @@
                 if (tmpGray && !Tile) {
                     maxLinesPerFrame = H;
                 }
+                var invBaseX = 1.0 / BaseX;
+                var invBaseY = 1.0 / BaseY;
 				for (var comp = 0; comp < 4; ++comp) {
                     if (ColorComponent[comp] || !hasColor) {
                         simplex = SimplexArray[comp];
@@ -236,20 +238,22 @@
 							for (var x = 0; x < W; ++x) {
 								var n;
 								if (!Tile) {
-									var x2 = x * BaseX / W + OffsetX;
-									var y2 = y * BaseY / H + OffsetY;
+									var x2 = (x + OffsetX) * invBaseX;
+									var y2 = (y + OffsetY) * invBaseY;
 									if (FBM) {
 										n = fbm2D(x2, y2, Octaves, Gain, Lacunaity) * 128 + 127;
 									} else {
 										n = turbulence2D(x2, y2, Octaves) * 255;
 									}
 								} else {
-									var x2 = (x % (W / 2) * BaseX / (W / 2) + OffsetX % BaseX + BaseX) % BaseX;
-									var y2 = (y % (H / 2) * BaseY / (H / 2) + OffsetY % BaseY + BaseY) % BaseY;
+									var w = W / 2 * invBaseX;
+									var h = H / 2 * invBaseY;
+									var x2 = ((x + OffsetX) % (W / 2) + W) % (W / 2) * invBaseX;
+									var y2 = ((y + OffsetY) % (H / 2) + H) % (H / 2) * invBaseY;
 									if (FBM) {
-										n = tileableFbm2D(x2, y2, Octaves, Gain, Lacunaity, BaseX, BaseY) * 128 + 127;
+										n = tileableFbm2D(x2, y2, Octaves, Gain, Lacunaity, w, h) * 128 + 127;
 									} else {
-										n = tileableTurbulence2D(x2, y2, Octaves, BaseX, BaseY) * 255;
+										n = tileableTurbulence2D(x2, y2, Octaves, w, h) * 255;
 									}
 								}
 								if (tmpGray){
@@ -308,8 +312,8 @@
 
         <script>
             function resetOptions() {
-                BaseX = 4;
-                BaseY = 4;
+                BaseX = 64;
+                BaseY = 64;
                 Octaves = 4;
                 Gain = 0.5;
                 Lacunaity = 2.0;
@@ -317,16 +321,16 @@
                 OffsetY = 0;
                 ColorComponent[0] = ColorComponent[1] = ColorComponent[2] = ColorComponent[3] = false;
         
-                $("#base-x").val(64.0);
-                $("#base-y").val(64.0);
+                $("#base-x").val(64);
+                $("#base-y").val(64);
                 $("#octaves").val(4);
                 $("#gain").val(0.5);
                 $("#lacunaity").val(2.0);
                 $("#offset-x").val(0);
                 $("#offset-y").val(0);
                 
-                $("#base-x-label").html(64.0);
-                $("#base-y-label").html(64.0);
+                $("#base-x-label").html(64);
+                $("#base-y-label").html(64);
                 $("#octaves-label").html(4);
                 $("#gain-label").html(0.5);
                 $("#lacunaity-label").html(2.0);
@@ -361,10 +365,10 @@
                 var range = $(this);
                 var value = parseFloat(range.val());
                 if (range.attr("id") == "base-x") {
-                    BaseX = 256.0 / value;
+                    BaseX = value;
                     $("#base-x-label").html(value);
                 } else if (range.attr("id") == "base-y") {
-                    BaseY = 256.0 / value;
+                    BaseY = value;
                     $("#base-y-label").html(value);
                 } else if (range.attr("id") == "octaves") {
                     Octaves = value;
