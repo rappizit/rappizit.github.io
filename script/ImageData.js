@@ -55,24 +55,80 @@ ImageData.wrap = function(x, s) {
     return x >= 0 ? x : x + s;
 }
 
+ImageData.ORIGIN = {x:0, y:0};
+
+ImageData.prototype.getRect = function() {
+    return this.rect ? this.rect : this.rect = {l:0, t:0, r:this.width, b:this.height};
+}
+
 ImageData.prototype.calDstRect = function(srcRect, dstPoint) {
-    var left = srcRect.x + dstPoint.x;
-    var top = srcRect.y + dstPoint.y;
-    var right = ImageData.clamp(left + srcRect.w, 0, this.width);
-    var bottom = ImageData.clamp(top + srcRect.h, 0, this.height);
-    left = ImageData.clamp(left, 0, this.width);
-    top = ImageData.clamp(top, 0, this.height);
-    return {x: left, y: top, w: right - left, h: bottom - top};
+    var left = ImageData.clamp(dstPoint.x, 0, this.width);
+    var top = ImageData.clamp(dstPoint.y, 0, this.height);
+    var right = ImageData.clamp(srcRect.r - srcRect.l + dstPoint.x, 0, this.width);
+    var bottom = ImageData.clamp(srcRect.b - srcRect.t + dstPoint.y, 0, this.height);
+    return {l: left, t: top, r: right, b: bottom};
 }
 
 /*
  * public function applyFilter(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, filter:BitmapFilter):void
+ *
+ * Notice: if this == srcBitmap && srcRect != srcBitmap.rect && dstPoint != (0, 0), it can failed.
  */
-ImageData.prototype.applyFilter = function(sourceBitmapData, sourceRect, destPoint, filter) {
-    sourceRect = sourceRect || {x:0, y:0, w:sourceBitmapData.width, h:sourceBitmapData.height};
-    destPoint = destPoint || {x:0, y:0};
-    filter.apply(sourceBitmapData, this, sourceRect, destPoint);
+ImageData.prototype.applyFilter = function(srcBitmap, srcRect, dstPoint, filter) {
+    srcRect = srcRect || srcBitmap.getRect();
+    dstPoint = dstPoint || ImageData.ORIGIN;
+    filter.apply(srcBitmap, this, srcRect, dstPoint);
 }
+
+/*
+ * public function copyPixels(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, alphaBitmapData:BitmapData = null, alphaPoint:Point = null, mergeAlpha:Boolean = false):void
+ */
+ImageData.prototype.copyPixels = function(srcBitmap, srcRect, dstPoint) {
+    srcRect = srcRect || srcBitmap.getRect();
+    dstPoint = dstPoint || ImageData.ORIGIN;
+    if (srcRect.l >= srcRect.r || srcRect.t >= srcRect.b) return;
+    var dstRect = this.calDstRect(srcRect, dstPoint);
+    var x0 = dstRect.l;
+    var y0 = dstRect.t;
+    var x1 = dstRect.r;
+    var y1 = dstRect.b;
+    if (x0 >= x1 || y0 >= y1) return;
+    var dstStride = this.width * 4;
+    var dst = this.data;
+    var dx = 1;
+    var dy = 1;
+    var dIndex = 4; 
+    if (dstPoint.x > srcRect.l) {
+        dx = -dx;
+        x0 = dstRect.r - 1;
+        x1 = dstRect.l - 1;
+        dIndex = -dIndex;
+    }
+    if (dstPoint.y > srcRect.t) {
+        dy = -dy;
+        y0 = dstRect.b - 1;
+        y1 = dstRect.t - 1;
+    }
+    if (isNaN(x0) || isNaN(x1) || isNaN(y0) || isNaN(y1)) {
+        alert("Error - ImageData.copyPixels: x0=" + x0 + " x1=" + x1 + " dx=" + dx + " y0=" + y0 + " y1=" + y1 + " dy=" + dy);
+        return;
+    }
+    var src = srcBitmap.data;
+
+    for (var y = y0; y != y1; y += dy) {
+        var dstIndex = y * dstStride + x0 * 4;
+        var srcIndex = (y - dstPoint.y + srcRect.t) * srcBitmap.width * 4 + (srcRect.l + x0 - dstPoint.x) * 4;
+        for (var x = x0; x != x1; x += dx) {
+            dst[dstIndex] = src[srcIndex];
+            dst[dstIndex + 1] = src[srcIndex + 1];
+            dst[dstIndex + 2] = src[srcIndex + 2];
+            dst[dstIndex + 3] = src[srcIndex + 3];
+            dstIndex += dIndex;
+            srcIndex += dIndex;
+        }
+    }
+}
+
 
 var SimplexArray =[new SimplexNoise(), new SimplexNoise() , new SimplexNoise(), new SimplexNoise(), ];
 
@@ -93,7 +149,7 @@ ImageData.prototype.perlinNoise = function(baseX, baseY, numOctaves, randomSeed,
     for (var i = 0; i < numOctaves; ++i) {
         scaledOffsets[i] = (offsets && i < offsets.length && offsets[i]) ? 
 			{x:offsets[i].x * invBaseX, y:offsets[i].y * invBaseY} : 
-			{x:0, y:0};
+			ImageData.ORIGIN;
     }
 
     var PI2 = Math.PI * 2;
@@ -276,4 +332,11 @@ ImageData.prototype.perlinNoise = function(baseX, baseY, numOctaves, randomSeed,
         }
     }
 
+}
+
+/*
+ * public function scroll(x:int, y:int):void
+ */
+ImageData.prototype.scroll = function(x, y) {
+    this.copyPixels(this, null, {x:x, y:y});
 }
