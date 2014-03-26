@@ -93,39 +93,25 @@ ImageData.prototype.copyPixels = function(srcBitmap, srcRect, dstPoint) {
     var x1 = dstRect.r;
     var y1 = dstRect.b;
     if (x0 >= x1 || y0 >= y1) return;
-    var dstStride = this.width * 4;
     var dst = this.data;
-    var dx = 1;
     var dy = 1;
-    var dIndex = 4; 
-    if (dstPoint.x > srcRect.l) {
-        dx = -dx;
-        x0 = dstRect.r - 1;
-        x1 = dstRect.l - 1;
-        dIndex = -dIndex;
-    }
-    if (dstPoint.y > srcRect.t) {
-        dy = -dy;
-        y0 = dstRect.b - 1;
-        y1 = dstRect.t - 1;
-    }
     if (isNaN(x0) || isNaN(x1) || isNaN(y0) || isNaN(y1)) {
         alert("Error - ImageData.copyPixels: x0=" + x0 + " x1=" + x1 + " dx=" + dx + " y0=" + y0 + " y1=" + y1 + " dy=" + dy);
         return;
     }
     var src = srcBitmap.data;
+    if (src == dst && dstPoint.y > srcRect.t) {
+        dy = -dy;
+        y0 = dstRect.b - 1;
+        y1 = dstRect.t - 1;
+    }
 
     for (var y = y0; y != y1; y += dy) {
-        var dstIndex = y * dstStride + x0 * 4;
-        var srcIndex = (y - dstPoint.y + srcRect.t) * srcBitmap.width * 4 + (srcRect.l + x0 - dstPoint.x) * 4;
-        for (var x = x0; x != x1; x += dx) {
-            dst[dstIndex] = src[srcIndex];
-            dst[dstIndex + 1] = src[srcIndex + 1];
-            dst[dstIndex + 2] = src[srcIndex + 2];
-            dst[dstIndex + 3] = src[srcIndex + 3];
-            dstIndex += dIndex;
-            srcIndex += dIndex;
-        }
+        var dstIndex = (y * this.width + x0) * 4;
+        var srcIndex = ( (y - dstPoint.y + srcRect.t) * srcBitmap.width + (srcRect.l + x0 - dstPoint.x) ) * 4;
+        var srcArray = new Uint32Array(src.buffer, srcIndex, x1 - x0);
+        var dstArray = new Uint32Array(dst.buffer, dstIndex, x1 - x0);
+        dstArray.set(srcArray);
     }
 }
 
