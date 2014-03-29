@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>rappizit</title>
+		<description></description>		
+		<link>http://rappizit.github.io</link>
+		<atom:link href="http://rappizit.github.io/feed.xml" rel="self" type="application/rss+xml" />
+		
+			<item>
+				<title>Roving Cloud</title>
+				<pubDate>Sun, 23 Mar 2014 19:38:00 +0000</pubDate>
+				<link>http://rappizit.github.io/2014/Roving-Cloud.html</link>
+				<guid isPermaLink="true">http://rappizit.github.io/2014/Roving-Cloud.html</guid>
+                
+                <description>
+                    &lt;a href=&#039;http://rappizit.github.io/2014/Roving-Cloud.html&#039;&gt;
+                    &lt;img alt=&#039;&#039; onerror=&#034;this.style.display=&#039;none&#039;&#034; src=&#039;/image/2014/Roving-Cloud.html.png&#039; /&gt;&lt;/a&gt;
+                </description>
+			</item>
+		
+			<item>
+				<title>Perlin Noise interactive explorer</title>
+				<pubDate>Sun, 23 Feb 2014 17:38:00 +0000</pubDate>
+				<link>http://rappizit.github.io/2014/Perlin-Noise-interactive-explorer.html</link>
+				<guid isPermaLink="true">http://rappizit.github.io/2014/Perlin-Noise-interactive-explorer.html</guid>
+                
+                <description>
+                    &lt;a href=&#039;http://rappizit.github.io/2014/Perlin-Noise-interactive-explorer.html&#039;&gt;
+                    &lt;img alt=&#039;&#039; onerror=&#034;this.style.display=&#039;none&#039;&#034; src=&#039;/image/2014/Perlin-Noise-interactive-explorer.html.png&#039; /&gt;&lt;/a&gt;
+                </description>
+			</item>
+		
+			<item>
+				<title>Rose for Valentine's Day</title>
+				<pubDate>Fri, 14 Feb 2014 00:00:00 +0000</pubDate>
+				<link>http://rappizit.github.io/2014/Rose-for-Valentine%27s-Day.html</link>
+				<guid isPermaLink="true">http://rappizit.github.io/2014/Rose-for-Valentine%27s-Day.html</guid>
+                
+                <description>
+                    &lt;a href=&#039;http://rappizit.github.io/2014/Rose-for-Valentine%27s-Day.html&#039;&gt;
+                    &lt;img alt=&#039;&#039; onerror=&#034;this.style.display=&#039;none&#039;&#034; src=&#039;/image/2014/Rose-for-Valentine%27s-Day.html.png&#039; /&gt;&lt;/a&gt;
+                </description>
+			</item>
+		
+	</channel>
+</rss>
