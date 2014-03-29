@@ -2,3 +2,4 @@ name: rappizit
 markdown: redcarpet
 pygments: true
 permalink: /:year/:title.html
+url: http://rappizit.github.io

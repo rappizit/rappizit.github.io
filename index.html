@@ -8,6 +8,7 @@ title: rappizit
   <ul class="posts">
     {% for post in site.posts %}
       <li><span>{{ post.date | date_to_string }}</span> &raquo; <a href="{{ post.url }}">{{ post.title }}</a></li>
+      <a href="{{ post.url }}"><img alt="" onerror="this.style.display='none'" src="/image{{post.url}}.png"></img></a>
     {% endfor %}
   </ul>
 </div>
