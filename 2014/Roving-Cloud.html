@@ -41,6 +41,7 @@
         <script src="/script/simplex-noise.min.js"></script>
         <script src="/script/ImageData.js"></script>
         <script src="/script/ColorMatrixFilter.js"></script>
+        <script src="/script/PerlinNoiseScroller.js"></script>
         <script src="/script/ImageDataScroller.js"></script>
         <script>
                 var canvas = document.getElementById("canvas");
@@ -74,9 +75,10 @@
                     ctx.putImageData(perlinBitmap, 0, 0);
                     ctx.fillRect(0, 0, W, H);   //draw sky
 
-                }, 16);
+                }, 8);
 */
-///*
+
+/*
                 //optimized version, use tilable perlin noise map to scroll endlessly
                 var perlinBitmap = ctx.createImageData(W / 2 * 3, H / 2 * 3);   //1.5x size can hide the repetition
                 perlinBitmap.perlinNoise(200, 200, numOctaves, 0, true, true, 1, false, offsets, 0.25, 2.5);
@@ -87,10 +89,38 @@
                     ctx.putImageData(scroller.getImageData(), 0, 0);
                     ctx.fillRect(0, 0, W, H);   //draw sky
 
-                }, 16);
+                }, 8);
+*/
+
+///*
+                //2014-03-30 updated: optimized version, scroll a non-tilable perlin noise map
+                var perlinBitmap = ctx.createImageData(W, H);
+                var copyBitmap = ctx.createImageData(W, H);
+                var fast = true;    //switch two versions, fast and slow
+                var scroller = new PerlinNoiseScroller(perlinBitmap, 2, 2, !fast, 240, 240, numOctaves, 0, false, true, 1, false, offsets, 0.2, 3);
+                copyBitmap.copyPixels(perlinBitmap);
+                copyBitmap.applyFilter(perlinBitmap, null, null, cmf);
+                
+               setInterval(function() {
+                    scroller.scroll(-2, 1);
+                    if (fast) {
+                        copyBitmap.scroll(-2, 1);
+                        var rectV = scroller.getPasteRectV();
+                        var rectH = scroller.getPasteRectH();
+                        copyBitmap.applyFilter(perlinBitmap, rectV, {x:rectV.l, y:rectV.t}, cmf);
+                        copyBitmap.applyFilter(perlinBitmap, rectH, {x:rectH.l, y:rectH.t}, cmf);
+                    } else {
+                        copyBitmap.applyFilter(perlinBitmap, null, null, cmf);
+                    }
+                    ctx.putImageData(copyBitmap, 0, 0);
+                    ctx.fillRect(0, 0, W, H);   //draw sky
+                    requestAnimationFrame(animLoop);
+                }, 8);
+
 //*/
 
         </script>
+		
 		
 
 
