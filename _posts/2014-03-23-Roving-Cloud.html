@@ -21,6 +21,7 @@ tags: noise cloud
         <script src="/script/ImageData.js"></script>
         <script src="/script/ColorMatrixFilter.js"></script>
         <script src="/script/PerlinNoiseScroller.js"></script>
+        <script src="/script/ImageDataScroller.js"></script>
         <script>
                 var canvas = document.getElementById("canvas");
                 var ctx = canvas.getContext("2d");
@@ -79,7 +80,7 @@ tags: noise cloud
                 copyBitmap.copyPixels(perlinBitmap);
                 copyBitmap.applyFilter(perlinBitmap, null, null, cmf);
                 
-                (function animLoop(){
+               setInterval(function() {
                     scroller.scroll(-2, 1);
                     if (fast) {
                         copyBitmap.scroll(-2, 1);
@@ -93,7 +94,7 @@ tags: noise cloud
                     ctx.putImageData(copyBitmap, 0, 0);
                     ctx.fillRect(0, 0, W, H);   //draw sky
                     requestAnimationFrame(animLoop);
-                })();
+                }, 8);
 
 //*/
 
