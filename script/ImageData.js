@@ -92,13 +92,13 @@ ImageData.prototype.copyPixels = function(srcBitmap, srcRect, dstPoint) {
     var y0 = dstRect.t;
     var x1 = dstRect.r;
     var y1 = dstRect.b;
+    if (x0 >= x1 || y0 >= y1) return;
     var dst = this.data;
     var dy = 1;
     if (isNaN(x0) || isNaN(x1) || isNaN(y0) || isNaN(y1)) {
         alert("Error - ImageData.copyPixels: x0=" + x0 + " x1=" + x1 + " dx=" + dx + " y0=" + y0 + " y1=" + y1 + " dy=" + dy);
         return;
     }
-    if (x0 >= x1 || y0 >= y1) return;
     var src = srcBitmap.data;
     if (src == dst && dstPoint.y > srcRect.t) {
         dy = -dy;
@@ -115,39 +115,14 @@ ImageData.prototype.copyPixels = function(srcBitmap, srcRect, dstPoint) {
     }
 }
 
-/*
- * fillRect(rect:Rectangle, color:uint):void
- */
-ImageData.prototype.fillRect = function(rect, color) {
-    rect = rect || this.getRect();
-    color = color || 0;
-    if (isNaN(rect.l) || isNaN(rect.r) || isNaN(rect.t) || isNaN(rect.b)) {
-        alert("Error - ImageData.fillRect: rect.l=" + rect.l + " rect.r=" + rect.r + " rect.t=" + rect.t + " rect.b=" + rect.b);
-        return;
-    }
-    rect = this.calDstRect(rect, ImageData.ORIGIN);
-    if (rect.l >= rect.r || rect.t >= rect.b) return;
 
-    var W = rect.r - rect.l;
-    var H = rect.b - rect.t;
-    var srcArray = new Uint32Array(this.data.buffer, 0, W);
-    for (var i = 0; i < W; ++i) {
-        srcArray[i] = 0xFF000000;
-    }
-    for (var y = 1; y < H; ++y) {
-        var dstArray = new Uint32Array(this.data.buffer, (this.width * y + rect.l) * 4, W);
-        dstArray.set(srcArray);
-    }
-}
-
-var SimplexArray = [];
+var SimplexArray =[new SimplexNoise(), new SimplexNoise() , new SimplexNoise(), new SimplexNoise(), ];
 
 /*
  * public function perlinNoise(baseX:Number, baseY:Number, numOctaves:uint, randomSeed:int, stitch:Boolean, fractalNoise:Boolean, 
  *      channelOptions:uint = 7, grayScale:Boolean = false, offsets:Array = null, gain:Number = 0.5, lacunaity:Number = 2):void
  */
 ImageData.prototype.perlinNoise = function(baseX, baseY, numOctaves, randomSeed, stitch, fractalNoise, channelOptions, grayScale, offsets, gain, lacunaity) {
-    SimplexArray = SimplexArray.length > 0 ?  SimplexArray : [new SimplexNoise(), new SimplexNoise() , new SimplexNoise(), new SimplexNoise(), ];
     var invBaseX = 1.0 / baseX;
     var invBaseY = 1.0 / baseY;
     if (numOctaves < 1) numOctaves = 1;
@@ -260,8 +235,6 @@ ImageData.prototype.perlinNoise = function(baseX, baseY, numOctaves, randomSeed,
     var OffsetX = 0;
     var OffsetY = 0;
 
-    this.fillRect(null, 0xFF000000);
-
     if (!stitch) {
         if (fractalNoise) {
             for (var comp = 0; comp < 4; ++comp) {
@@ -325,6 +298,21 @@ ImageData.prototype.perlinNoise = function(baseX, baseY, numOctaves, randomSeed,
                         data[idx + comp] = data[idx];
                         idx += 4;
                     }
+                }
+            } else {
+                // comment this section for optimization, cuz' these channels would not be used
+                for (var y = 0, idx = 0; y < H; ++y) {
+                    for (var x = 0; x < W; ++x) {
+                        data[idx + comp] = 0;
+                        idx += 4;
+                    }
+                }
+            }
+        } else {
+            for (var y = 0, idx = comp; y < H; ++y) {
+                for (var x = 0; x < W; ++x) {
+                    data[idx] = 255;
+                    idx += 4;
                 }
             }
         }
