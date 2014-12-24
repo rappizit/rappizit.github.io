@@ -1,0 +1,481 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Merry Christmas</title>
+		<style>
+			body{ background-color: white; }
+			canvas{ background-color: white; }
+		</style>
+
+		<script id="shader-vs" type="x-shader/x-vertex">
+			attribute vec2 aVertexPosition;
+			attribute vec2 aVertexTexCoord;
+			uniform float uInvSize;
+			varying mediump vec2 vTextureCoord;
+
+			void main(void) {
+				gl_Position = vec4(aVertexPosition.x * uInvSize, 1.0 - aVertexPosition.y * uInvSize, 0.0, 1.0);
+				//gl_Position = vec4(aVertexPosition, 1.0);
+		        vTextureCoord = aVertexTexCoord;
+			}
+		</script>
+
+		<script id="shader-fs" type="x-shader/x-fragment">
+		    uniform sampler2D uSampler;
+		    varying mediump vec2 vTextureCoord;
+			
+			void main(void) {
+				#if 1
+					mediump vec4 color = texture2D( uSampler, vTextureCoord );
+					gl_FragColor = vec4( color.rgb * color.a, color.a );
+				#else
+					gl_FragColor = texture2D( uSampler, vTextureCoord );
+				#endif
+			}
+		</script>
+
+		<script>
+
+			(function() {
+			    var lastTime = 0;
+			    var vendors = ['ms', 'moz', 'webkit', 'o'];
+			    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+			        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+			        window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] 
+			                                   || window[vendors[x]+'CancelRequestAnimationFrame'];
+			    }
+			 
+			    if (!window.requestAnimationFrame)
+			        window.requestAnimationFrame = function(callback, element) {
+			            var currTime = new Date().getTime();
+			            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+			            var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
+			              timeToCall);
+			            lastTime = currTime + timeToCall;
+			            return id;
+			        };
+			 
+			    if (!window.cancelAnimationFrame)
+			        window.cancelAnimationFrame = function(id) {
+			            clearTimeout(id);
+			        };
+			}());
+		
+			var SHOW_FPS = 0;
+
+			function rand(a, b) {
+				return Math.random() * (b - a) + a;
+			}
+
+			var fpsCounter = SHOW_FPS && new FpsCounter();
+			var lastTime = 0;
+			var RotateY = 0;
+			
+			var W = 446;
+			M = Math;
+			J = [];
+			J2 = [];
+			Vertices = [];
+			TexCoords = [];
+
+			var SpriteSize = 32;
+			var LeavesCount = 10;
+			var BallCount = 2;
+			var SnowIndex = LeavesCount + BallCount;
+			var SnowCount = 1;
+			var SpritesCount = SnowIndex + SnowCount;
+			var SpriteGridSize = M.ceil(M.sqrt(SpritesCount));
+			var spriteSheet = document.createElement('canvas');
+			spriteSheet.width = spriteSheet.height = SpriteSize * SpriteGridSize;
+			var CurrentSpriteCount = 0;
+
+			function generateSpriteSheet() {
+				for (var k = 0; k < SpritesCount; ++k) {
+					var HS = SpriteSize * 0.5;
+					with (spriteSheet.getContext('2d')) {
+						save();
+						translate(k % SpriteGridSize * SpriteSize, M.floor(k / SpriteGridSize) * SpriteSize);
+						if (k < LeavesCount) {	//draw leaves
+							if (false) {		//only draw a point for test
+								fillStyle = 'rgba(0, 0, 0, 1)' ;
+								beginPath();
+								arc(HS, HS, 1, 0, M.PI * 2);
+								fill();
+								continue;
+							}
+
+							for (var i = 0; i < W; ++i) {
+								var x = rand(-1, 1);	//M.sin(i); 
+						    	var y = rand(-1, 1);
+						    	var D = x * x + y * y; 
+						    	var B = M.sqrt(D - x / .9 - 1.5 * y + 1); 
+						    	var L = k / 9 + .8;
+						    	var R = 67 * (B + 1) * L >> 1; 
+						        if (D < 1) {
+									strokeStyle = 'rgba(' + R + ', ' + (R + B * L >> 0) + ', 40, 0.1)';
+						        	beginPath();
+						        	//line (x/2, y/2) -> (x, y)
+						        	moveTo(HS + x * HS / 2, HS + y * HS / 2);
+						        	lineTo(HS + x * HS, HS + y * HS);
+						        	stroke(); 
+								}
+							}
+						} else if (k < SnowIndex) {		//draw balls
+							for (var i = 0; i < 7; ++i) {
+								var I = i * 16;
+								fillStyle = 'rgba(' + (147 + I) + ', ' + (k % 2 ? 128 + I : 0) + ', ' + I + ', 0.5)';
+								beginPath();
+								arc(HS - i / 3, 
+		        					24 - i / 2, 
+		        					8 - i, 
+		        					0, 
+		        					M.PI * 2);
+								fill();
+							}
+						} else {	//draw snow
+							for (var i = 0; i < 7; ++i) {
+								var I = i * 16;
+								fillStyle = 'rgba(205, 205, 215, 0.15)' ;
+								beginPath();
+								arc(HS - i / 3, 
+		        					24 - i / 2, 
+		        					4 - i / 2,
+		        					0, 
+		        					M.PI * 2);
+								fill();
+							}
+						}
+						restore();
+					}
+				}
+
+			}
+
+			function generateTree() {
+				var U = SpriteSize / 2;
+				for (var count = 0, k = 0; k < 200; ++k) {
+					var x = 0;
+					var y = k + M.sqrt(k) * 25;
+					var z = 0;
+					var R = rand(0, M.PI * 2);
+					var P = 3;
+					var H = y;
+					for (var j = 0; j < H; j += U) {
+						var s = j / H * LeavesCount;
+						if (j + U > H) {
+							if (M.random() > 0.8) {
+								s += rand(0, BallCount);
+							}
+						}
+						J[count++] = [
+							x += M.sin(R) * P + rand(-3, 3),
+							y += rand(-SpriteSize / 4, SpriteSize / 4),
+							z += M.cos(R) * P + rand(-3, 3),
+							M.floor(s)];
+						J2[count - 1] = [0.0, 0.0, 0.0, 0];
+					}
+				}
+			}
+
+			var gl = null,
+				canvas = null,
+				glProgram = null,
+				fragmentShader = null,
+				vertexShader = null;
+				
+			var vertexPositionAttribute = null,
+				vertexColorAttribute = null,
+				vertexTexCoordAttribute = null,
+				trianglesVerticeBuffer = null,
+				trianglesColorBuffer = null,
+				trianglesTexCoordBuffer = null;
+
+			var VerticesArray = null,
+				TexCoordsArray = null;
+
+			var texture = null;
+			var textTexture = null;
+			var textWidth = 0, textHeight = 0;
+			var textWidthScale = 1, textHeightScale = 1;
+
+			function setupTexture(image)
+			{
+				var texture = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, texture);
+                // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+                if( !gl.isTexture(texture) )
+                {
+                	console.error("Error: Texture is invalid");
+                }
+
+				// gl.generateMipmap(gl.TEXTURE_2D);
+				// glProgram.samplerUniform = gl.getUniformLocation(glProgram, "uSampler");
+				// gl.uniform1i(glProgram.samplerUniform, 0);
+
+				return texture;
+			}
+
+
+			function generateTextTexture() {
+				var text = 'Dear Wing, Merry Xmas!';
+
+				var image = document.createElement('canvas');
+				var ctx = image.getContext('2d');
+				ctx.font = '50px Impact';
+				var measureResult = ctx.measureText(text);
+				var size = 1;
+				while (size < measureResult.width && size < 1024) {
+					size *= 2;
+				}
+				textWidthScale = measureResult.width * 1.0 / size;
+				textHeightScale = textWidthScale * 0.25;
+
+				textWidth = image.width = size;
+				textHeight = image.height = size;
+				ctx.font = '40px Impact';
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'middle'; 
+				// ctx.fillStyle = '#000000';
+				// ctx.fillRect(0, 0, size, size);
+				ctx.fillStyle = '#cca';
+				ctx.fillText(text, size / 2, size / 2);
+
+				textTexture = setupTexture(image);
+
+			}
+
+			function initWebGL()
+			{
+				canvas = document.getElementById("my-canvas");  
+				try{
+					gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");					
+				}catch(e){
+				}
+								
+				if(gl)
+				{
+
+					generateSpriteSheet();
+					generateTree();
+
+					initShaders();
+					generateTextTexture();
+					texture = setupTexture(spriteSheet);
+					setupWebGL();
+					(function animLoop(){
+						drawScene();
+						requestAnimationFrame(animLoop, canvas);
+					})();
+				}else{	
+					alert(  "Error: Your browser does not appear to support WebGL.");
+				}
+			}
+			
+			function setupWebGL()
+			{
+				//set the clear color to a shade of green
+				gl.clearColor(1, 1, 1, 1.0); 	
+				gl.clear(gl.COLOR_BUFFER_BIT);	
+				gl.enable(gl.BLEND);
+				gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+				
+				gl.viewport(0, 0, canvas.width, canvas.height);
+			}
+			
+			function initShaders()
+			{
+
+				fs_source = document.getElementById('shader-fs').innerHTML,
+				vs_source = document.getElementById('shader-vs').innerHTML;
+
+				//compile shaders	
+                vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+				fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+				
+				//create program
+				glProgram = gl.createProgram();
+				
+				//attach and link shaders to the program
+                gl.attachShader(glProgram, vertexShader);
+                gl.attachShader(glProgram, fragmentShader);
+                gl.linkProgram(glProgram);
+
+                if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+                    alert("Unable to initialize the shader program.");
+                }
+				
+				//use program
+				gl.useProgram(glProgram);
+			}
+			
+			function makeShader(src, type)
+			{
+				//compile the vertex shader
+				var shader = gl.createShader(type);
+                gl.shaderSource(shader, src);
+                gl.compileShader(shader);
+
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+                }
+				return shader;
+			}
+
+			var VertexOffset = [
+				-0.5 * SpriteSize,  0.5 * SpriteSize,
+				-0.5 * SpriteSize, -0.5 * SpriteSize,
+				 0.5 * SpriteSize, -0.5 * SpriteSize,
+				 0.5 * SpriteSize, -0.5 * SpriteSize,
+				 0.5 * SpriteSize,  0.5 * SpriteSize,
+				-0.5 * SpriteSize,  0.5 * SpriteSize,
+			];
+			var TexCoordOffset = [
+				-0.5 / SpriteGridSize, -0.5 / SpriteGridSize,
+				-0.5 / SpriteGridSize,  0.5 / SpriteGridSize,
+				 0.5 / SpriteGridSize,  0.5 / SpriteGridSize,
+				 0.5 / SpriteGridSize,  0.5 / SpriteGridSize,
+				 0.5 / SpriteGridSize, -0.5 / SpriteGridSize,
+				-0.5 / SpriteGridSize, -0.5 / SpriteGridSize,
+			];
+
+			function drawArray() {
+				//create buffers and bind data
+				trianglesVerticeBuffer = trianglesVerticeBuffer || gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+				VerticesArray = VerticesArray || new Float32Array(Vertices.length);
+				VerticesArray.set(Vertices, 0);
+				gl.bufferData(gl.ARRAY_BUFFER, VerticesArray, gl.DYNAMIC_DRAW);	
+
+				trianglesTexCoordBuffer = trianglesTexCoordBuffer || gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesTexCoordBuffer);
+				TexCoordsArray = TexCoordsArray || new Float32Array(TexCoords.length);
+				TexCoordsArray.set(TexCoords, 0);
+				gl.bufferData(gl.ARRAY_BUFFER, TexCoordsArray, gl.DYNAMIC_DRAW);
+
+				//attach buffers to shader
+				vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
+                gl.enableVertexAttribArray(vertexPositionAttribute);
+				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+				gl.vertexAttribPointer(vertexPositionAttribute, 2, gl.FLOAT, false, 0, 0);
+				
+				vertexTexCoordAttribute = gl.getAttribLocation(glProgram, "aVertexTexCoord");
+                gl.enableVertexAttribArray(vertexTexCoordAttribute);
+				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesTexCoordBuffer);
+				gl.vertexAttribPointer(vertexTexCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+
+				var invSizeUniform = gl.getUniformLocation(glProgram, "uInvSize");
+				gl.uniform1f(invSizeUniform, 2.0 / W);
+
+				gl.drawArrays(gl.TRIANGLES, 0, CurrentSpriteCount * 6);
+			}
+
+			function drawText() {
+				CurrentSpriteCount = 0;
+				var L = [0, 320, 0, 0];
+
+				var u = 0.5, v = 0.5;
+				for (var j = 0, index = CurrentSpriteCount * 12; j < 12; j += 2) {
+					TexCoords[index + j    ] = u + (TexCoordOffset[j] * SpriteGridSize) * textWidthScale;
+					TexCoords[index + j + 1] = v + (TexCoordOffset[j + 1] * SpriteGridSize) * textHeightScale * -0.5;
+				}
+				for (var j = 0, index = CurrentSpriteCount * 12; j < 12; j += 2) {
+					Vertices[index + j    ] = L[0] + (VertexOffset[j    ] / SpriteSize) * textWidth * textWidthScale;
+					Vertices[index + j + 1] = L[1] + (VertexOffset[j + 1] / SpriteSize) * textHeight * textHeightScale;
+				}
+
+				CurrentSpriteCount++;
+
+				gl.bindTexture(gl.TEXTURE_2D, textTexture);
+				drawArray();
+			}
+
+			function drawSprites(start, end) {
+				CurrentSpriteCount = 0;
+				var invSpriteGridSize = 1.0 / SpriteGridSize;
+				var tmp = [0, 0, 0, 0];
+				var drawSnow = true;
+				start = M.max(0, start);
+				end = M.min(end, J2.length);
+				for (var i = start; i < end; ++i) {
+					var L = J2[i];
+					if (i % 7 == 0 && drawSnow) {
+						L = tmp;
+						L[0] = (157 * (i * i) + M.sin(RotateY * 5 + i * i) * 5) % W - W / 2;
+			        	L[1] = (113 * i + (RotateY * i) / 60) % (320 + i / 99);
+						L[2] = 0;
+						L[3] = SnowIndex;
+					}
+					var s = L[3];
+
+					var u = (s % SpriteGridSize + 0.5) * invSpriteGridSize;
+					var v = (M.floor(s / SpriteGridSize) + 0.5) * invSpriteGridSize;
+					for (var j = 0, index = CurrentSpriteCount * 12; j < 12; j += 2) {
+						TexCoords[index + j    ] = u + TexCoordOffset[j];
+						TexCoords[index + j + 1] = v + TexCoordOffset[j + 1];
+					}
+					for (var j = 0, index = CurrentSpriteCount * 12; j < 12; j += 2) {
+						Vertices[index + j    ] = L[0] + VertexOffset[j    ];
+						Vertices[index + j + 1] = L[1] + VertexOffset[j + 1];
+					}
+
+					CurrentSpriteCount++;
+					if (i % 7 == 0 && drawSnow) {
+						drawSnow = false;
+						--i;
+					} else {
+						drawSnow = true;
+					}
+
+				}
+
+				gl.bindTexture(gl.TEXTURE_2D, texture);
+				drawArray();
+			}
+
+			function drawScene()
+			{
+				for (var i = 0; i < J.length; ++i) {
+					var src = J[i], dst = J2[i];
+					var cos = M.cos(RotateY), sin = M.sin(RotateY);
+					dst[0] = src[2] * sin + src[0] * cos;
+					dst[1] = src[1] * 0.5;
+					dst[2] = src[2] * cos - src[0] * sin;
+					dst[3] = src[3];
+				}
+				J2.sort(function(p, q) {
+						//compare rotated-z
+						return p[2] - q[2];
+					});
+
+				if (1) {
+					drawSprites(0, 2500);
+					drawText();
+					drawSprites(2500, J2.length);
+				} else {
+					drawSprites(0, J2.length);
+				}
+
+				var time = new Date().getTime();
+			    if (lastTime == 0) {
+			    	lastTime = time;
+			    }
+			    RotateY += (time - lastTime) * 0.8 / 1000;
+			    lastTime = time;
+			    if (SHOW_FPS && fpsCounter.computeFps(time)) {
+			    	document.getElementById("fps").innerHTML = "fps=" + fpsCounter.getFps();
+			    }
+
+			}			
+		</script>
+	</head>
+	<body onload="initWebGL()">
+		<canvas id="my-canvas" width="512" height="512">
+		Your browser does not support the HTML5 canvas element.
+		</canvas>
+		<p id="fps"></p>
+	</body>
+</html>
